@@ -1,0 +1,24 @@
+
+//也可以使用enum来定义插入的模式,头插or尾插
+#define LLIST_FORWARD		1
+#define LLIST_BACKWARD		2
+
+
+struct llist_node_st {
+	void *date;
+	struct llist_node_st *prev;
+	struct llist_node_st *next;
+};
+
+typedef struct {
+	int size;
+	struct llist_node_st head;
+} LLIST;
+
+llist_create(int initsize);
+llist_insert(LLIST *, const void *data, int mode);
+void *llist_find(LLIST *, const void *key, llist_cmp *);
+int llist_delete(LLIST *, const void *key, llist_cmp *);
+llist_fetch(LLIST *, const void *key, llist_cmp *, void *data);
+llist_travel(LLIST *, llist_op *);
+llist_destory(LLIST *);
