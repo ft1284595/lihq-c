@@ -18,7 +18,6 @@ struct node_st
 
 int insert(struct node_st **root, int data)
 {
-
 	if(*root == NULL)
 	{
 		struct node_st *newNode;
