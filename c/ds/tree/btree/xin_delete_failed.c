@@ -213,59 +213,46 @@ void balance(struct node_st **root)
  */
 int delete(struct node_st **root, int id)
 {
-	struct node_st **node;
-	struct node_st *cur = NULL;
+	struct node_st *cur = *root;
 	struct node_st *tmp = NULL;
-
+	struct node_st *tmp1 = NULL;
+	
 	if(*root == NULL)
 	{
-		printf("the given tree is a empty tree.");
+		printf("there isn't any tree. *root is NULL.\n");
 		return -1;
 	}
-
-	node = root;
-
-	//在树种查找指定的节点
-	while(*node != NULL && (*node)->data.id != id)
+		
+	//在树中查找指定的节点
+	while(cur != NULL && id > cur->data.id)
 	{
-		if(id > (*node)->data.id)
-		{
-			*node = (*node)->rightChild;
-		}
-		else{
-			*node = (*node)->leftChild;
-		}
+		cur = cur->rightChild;
 	}
 
-	//没有找到要删除的节点
-	if(*node == NULL)
+	while(cur != NULL && id < cur->data.id)
 	{
-		printf("can not find the given id in the tree.\n");
+		cur = cur->leftChild;
+	}
+
+	if(cur == NULL)
+	{
+		printf("can not find the node for the given id:%d\n", id);
 		return -2;
 	}
-
-	//找到了指定的节点, 但是指定节点没有左子树
-	if((*node)->leftChild == NULL)
-	{
-		*node = (*node)->rightChild;
-	}
-	else
-	{
-		tmp = *node;
-		*node = (*node)->leftChild;
-		cur = *node;
-		while(cur->rightChild != NULL)
-		{
-			cur = cur->rightChild;
-		}
-
-		cur->rightChild = tmp->rightChild;
-
-		free(tmp);
-		
-	}
-
 	
+	printf("--------->%d\n", cur->data.id);
+	tmp = cur;
+	cur = cur->leftChild;
+	tmp1 = cur;
+	while(tmp1->rightChild != NULL)
+	{
+		tmp1 = tmp1->rightChild;
+	}
+
+	tmp1->rightChild = tmp->rightChild;
+
+	free(tmp);
+
 
 }
 
