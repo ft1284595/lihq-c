@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "queue.h"
+
 #define NAMESIZE	32
 
 /**
@@ -17,11 +19,11 @@ struct score_st
 	int chinese;
 };
 
-struct node_st
+struct treenode_st
 {
 	struct score_st data;
-	struct node_st *leftChild;
-	struct node_st *rightChild;
+	struct treenode_st *leftChild;
+	struct treenode_st *rightChild;
 };
 
 
@@ -30,9 +32,9 @@ struct node_st
  * 插入规则是,比较新节点的id和当前节点的id,如果新节点的id > 当前节点的id,
  * 则插入为当前节点的右孩子,其他情况为左孩子
  */
-int insert(struct node_st **root, struct score_st *score)
+int insert(struct treenode_st **root, struct score_st *score)
 {
-	struct node_st *newNode;
+	struct treenode_st *newNode;
 	if(*root== NULL)
 	{
 		newNode = malloc(sizeof(*newNode));
@@ -60,7 +62,7 @@ void print_s(struct score_st * score)
 	printf("%d\n", score->id);
 }
 
-void draw_(struct node_st *root, int level)
+void draw_(struct treenode_st *root, int level)
 {
 	int i;
 	if(root == NULL)	
@@ -75,7 +77,7 @@ void draw_(struct node_st *root, int level)
 	draw_(root->leftChild, level+1);
 }
 
-void draw(struct node_st *root)
+void draw(struct treenode_st *root)
 {
 	printf("\n");
 	printf("--------------------------------------\n");
@@ -84,7 +86,7 @@ void draw(struct node_st *root)
 	printf("\n");
 }
 
-struct score_st * find(struct node_st *root, int id)
+struct score_st * find(struct treenode_st *root, int id)
 {
 	if(root == NULL)
 		return NULL;
@@ -104,7 +106,7 @@ struct score_st * find(struct node_st *root, int id)
 	}
 }
 
-int get_height(struct node_st *root)
+int get_height(struct treenode_st *root)
 {
 	int leftHeight = 0;
 	int rightHeight = 0;
@@ -123,11 +125,11 @@ int get_height(struct node_st *root)
 /**
  * 向左旋转二叉树
  */
-void turn_left(struct node_st **root)
+void turn_left(struct treenode_st **root)
 {
 	//printf("turn_left\n");
-	struct node_st *tmp;
-	struct node_st *oldRoot = *root;
+	struct treenode_st *tmp;
+	struct treenode_st *oldRoot = *root;
 	*root = (*root)->rightChild;
 	tmp = *root;
 	while(tmp->leftChild != NULL)
@@ -143,10 +145,10 @@ void turn_left(struct node_st **root)
 /**
  * 向右旋转二叉树
  */
-void turn_right(struct node_st **root)
+void turn_right(struct treenode_st **root)
 {
-	struct node_st *tmp;
-	struct node_st *oldRoot = *root;
+	struct treenode_st *tmp;
+	struct treenode_st *oldRoot = *root;
 
 	*root = (*root)->leftChild;
 	tmp = *root;
@@ -165,12 +167,12 @@ void turn_right(struct node_st **root)
  * 	平衡二叉树: 平衡二叉树的意义是避免二叉树退化成链表,
  * 	链表的查询效率比二叉树低一些
  */
-void balance(struct node_st **root)
+void balance(struct treenode_st **root)
 {
 	int leftHeight = 0;
 	int rightHeight = 0;
 	int diffHeight = 0;
-	struct node_st **cur = root;	//保留root指针不被改变,方便调试问题
+	struct treenode_st **cur = root;	//保留root指针不被改变,方便调试问题
 
 	if(*cur == NULL)
 	{
@@ -211,11 +213,11 @@ void balance(struct node_st **root)
  * 我们约定,删除节点的时候,如果该节点同时有左子树和右子树,优先将左子树顶上去
  * 删除节点别忘了free节点相应的内存
  */
-int delete(struct node_st **root, int id)
+int delete(struct treenode_st **root, int id)
 {
-	struct node_st **node;
-	struct node_st *cur = NULL;
-	struct node_st *tmp = NULL;
+	struct treenode_st **node;
+	struct treenode_st *cur = NULL;
+	struct treenode_st *tmp = NULL;
 
 	if(*root == NULL)
 	{
@@ -269,13 +271,82 @@ int delete(struct node_st **root, int id)
 
 }
 
+/**
+ *
+ * 遍历树节点, 前序,中序,后序,
+ * 根,左孩子,右孩子就是前序
+ * 左孩子,根,右孩子就是中序
+ * 左孩子,右孩子,根 就是后序
+ */
+#if 0
+void traversal(struct treenode_st *root)
+{
+	if(root == NULL)	
+	{
+		return;
+	}
+
+
+	traversal(root->leftChild);
+	traversal(root->rightChild);
+	print_s(&root->data);
+
+
+}
+#else
+/**
+ * 按行遍历树节点
+ */
+void traversal(struct treenode_st *root)
+{
+	QUEUE *que = NULL;
+	struct treenode_st *tmp;
+	
+	if(root == NULL)
+		return;
+	que = queue_create(sizeof(*root));
+	printf("que=%p\n", que);
+	if(que == NULL)
+	{
+		fprintf(stderr, "init queue failed.\n");
+		return;
+	}
+
+	queue_en(que, root);
+
+	while(1)
+	{
+		if(queue_de(que, tmp) != -1)
+		{
+			print_s(&tmp->data);
+			if(tmp->leftChild != NULL)
+			{
+				queue_en(que, tmp->leftChild);
+			}
+			if(tmp->rightChild != NULL)
+			{
+				queue_en(que, tmp->rightChild);
+			}
+		}
+		else{
+			break;
+		}
+	} 
+	printf("123\n");
+	printf("que=%p\n", que);
+	//queue_destory(que);
+	printf("456\n");
+}
+#endif
+
 int main()
 {
-	struct node_st *root = NULL;
+	struct treenode_st *root = NULL;
 	struct score_st tmp;
 	int i;
 
-	int arr[] = {1,2,3,7,6,5,9,8,4};
+	//int arr[] = {1,2,3,7,6,5,9,8,4};
+	int arr[] = {1,2};
 
 	for(i = 0; i < sizeof(arr)/sizeof(*arr); i++)
 	{
@@ -292,11 +363,19 @@ int main()
 
 	draw(root);
 
+
+	printf("\n\n");
+	traversal(root);
+
+
+	printf("where is core dump\n");
+	/*
 	printf("*******************************\n");
 
 	delete(&root, 5);
 
 	draw(root);
+	*/
 #if 0
 	printf("===============================\n");
 	printf("%d", get_height(root));
