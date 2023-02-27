@@ -104,6 +104,7 @@ struct score_st * find(struct treenode_st *root, int id)
 	{
 		find(root->leftChild, id);
 	}
+	return NULL;
 }
 
 int get_height(struct treenode_st *root)
@@ -267,7 +268,8 @@ int delete(struct treenode_st **root, int id)
 		
 	}
 
-	
+
+	return 0;
 
 }
 
@@ -300,7 +302,7 @@ void traversal(struct treenode_st *root)
 void traversal(struct treenode_st *root)
 {
 	QUEUE *que = NULL;
-	struct treenode_st *tmp;
+	struct treenode_st *tmp = malloc(sizeof(*tmp));
 	
 	if(root == NULL)
 		return;
@@ -345,8 +347,8 @@ int main()
 	struct score_st tmp;
 	int i;
 
-	//int arr[] = {1,2,3,7,6,5,9,8,4};
-	int arr[] = {1,2};
+	int arr[] = {1,2,3,7,6,5,9,8,4};
+	//int arr[] = {1};
 
 	for(i = 0; i < sizeof(arr)/sizeof(*arr); i++)
 	{

@@ -131,6 +131,6 @@ void llist_destory(LLIST *list){
 		free(current);
 	}
 
-	free(list);
 	printf("llist_destory end.\n");
+	free(list);
 }
