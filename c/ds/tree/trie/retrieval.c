@@ -109,6 +109,10 @@ int getWord(char *buffer, char *key, char *value)
 	return 0;
 }
 
+/**
+ *
+ * 搜索树的查询时间复杂度是O(1)
+ */
 char *searchWord(struct node_st *root, char *key)
 {
 	if(root == NULL)
