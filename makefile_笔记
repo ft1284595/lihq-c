@@ -1,0 +1,24 @@
+target:prerequisite
+	command
+command前面必须是一个tab
+
+main.o:main.c
+	gcc main.c -c -Wall -g -o main.o
+
+
+头文件不用编译
+
+makefile可以自定义变量,使用变量的时候$(变量名)
+定义:OBJS=main.o tool1.o tool2.o
+使用:$(OBJS)
+
+CFLAGS+=-c -Wall -g					//+(加号)表示在原来的基础上追加
+
+
+make有很多内置变量
+CC=gcc
+RM=rm -f
+$^表示在上一句target:prerequisite中的prerequisite(即,被依赖的所有文件)
+$@表示在上一句target:prerequisite中的target(即,目标)
+
+%是通配符,可以用来通配在target:prerequisite中的文件或标签名称
