@@ -6,6 +6,14 @@ I/O: input & output是一切实现的基础
 stdio: FILE类型贯穿始终
 
 fopen(); 
+	perror();
+	strerror();
+
+	C语言提供了perror()和strerror()函数来显示与errno相关的文本消息.
+	perror()函数显示您传给它的字符串，后跟一个冒号、一个空格和当前errno值的文本表示形式.
+	strerror()函数，返回一个指针，指针指向当前errno值的文本表示形式.
+	两者的区别在于perror()向stderr输出结果，若你的程序将标准错误输出重定向到/dev/null,那就看不到了，就不能用perror了
+	而 strerror的作用只是将errno对应的错误消息字符串返回.你可以自己决定咋样处理字符串,比如可以存到日志,也可以直接printf出来.
 fclose();
 
 fgetc();
