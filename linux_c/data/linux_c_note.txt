@@ -5,16 +5,64 @@ I/O: input & output是一切实现的基础
 
 stdio: FILE类型贯穿始终
 
-fopen(); 
+首先补充两个错误处理的函数:
 	perror();
 	strerror();
 
 	C语言提供了perror()和strerror()函数来显示与errno相关的文本消息.
-	perror()函数显示您传给它的字符串，后跟一个冒号、一个空格和当前errno值的文本表示形式.
-	strerror()函数，返回一个指针，指针指向当前errno值的文本表示形式.
-	两者的区别在于perror()向stderr输出结果，若你的程序将标准错误输出重定向到/dev/null,那就看不到了，就不能用perror了
-	而 strerror的作用只是将errno对应的错误消息字符串返回.你可以自己决定咋样处理字符串,比如可以存到日志,也可以直接printf出来.
+	perror()函数显示您传给它的字符串,后跟一个冒号,一个空格和当前errno值的文本表示形式.
+	strerror()函数,返回一个指针,指针指向当前errno值的文本表示形式.
+	两者的区别在于perror()向stderr输出结果，若你的程序将标准错误输出重定向到/dev/null,那就看不到了,就不能用perror了
+	而strerror的作用只是将errno对应的错误消息字符串返回.你可以自己决定咋样处理字符串,比如可以存到日志,也可以直接printf出来.
+
+fopen(); 
+fopen函数会返回一个FILE类型的指针,那么这个指针指向的结构体FILE是保存在内存中的什么位置(栈,静态区,还是堆)?
+
+栈(✗)				静态区(✗)				堆(✓)
+FILE *fopen(const char *restrict pathname, const char *restrict mode)
+{
+	/*	
+	//如果返回的是在栈上,那么代码类似下面的写法
+	FILE tmp;
+	....
+
+	return tmp;		//这样的实现,在fopen函数结束的时候,tmp也相应的消失了
+	*/
+
+	/*
+	//静态区的实现
+	static FILE tmp;
+	...
+	...
+	
+	return tmp;	//这样的实现的确可延长tmp的生命周期至fopen函数结束以后,
+	但是有缺点,因为static变量使用的是同一块内存, 如果你调用fopen()两次,那么后面调用的返回值会覆盖第一次的返回值
+	*/
+
+	/*
+	返回值在堆上的实现
+	*/
+	FILE *tmp = NULL;
+
+	tmp = malloc(sizeof(FILE));	//有malloc操作就必定会有对应的free来释放内存,free操作在fclose()中
+	tmp->xx = xxx;
+	....
+
+	return tmp;
+}
+
+fopen() 有两个参数,第一个参数是文件名称,第二个参数是打开的模式mode
+mode主要有r,r+,		w,w+,	a,a+
+这其中只有r和r+要求文件必须存在,如果文件不存在就会返回NULL,
+w和a模式,如果文件不存在就创建文件
+
+还有一种模式b,这种模式在linux环境下没有意义,它是在windows下,表示以2进制的方式
+
+
 fclose();
+
+小技巧: 如果一个函数返回一个指针,并且关于这个指针还有相关的互逆操作(比如:fopen, fclose),那个这个指针是在堆上.
+如果没有互逆操作的函数(由于种种原因造成的),那么这个指针是在堆上还是在静态区是不能确定的,需要你自己写测试代码来判断.
 
 fgetc();
 fputc();
