@@ -67,7 +67,30 @@ fclose();
 
 fgetc();
 fputc();
+
 fgets();
+	char *fgets(char *buf, size, FILE *stream);
+	知识点:对于任何一个非空的文件,文件中的最后都一定会有一个字符'\n'(可以使用cat -A filename 查看文件中的所有字符)
+	fgets函数的正常结束有两种情况:
+		(1)函数读到了size-1个字节, 第size个字节是专门预留给'\0'的
+		(2)函数遇到了'\n'
+		但是还有一种边界情况, 考虑下面的情况
+			#define SIZE 	5	
+			char buf[SIZE]
+			char *fgets(buf, SIZE, FILE *stream);
+
+			现在有一个文件test的内容是:
+			abcd
+			请问fgets函数需要读取多少次才能读完文件test的全部内容.
+			答案:是2次.
+			根据上面的常识我们知道文件的内容其实是abcd\n	
+			宏定义buf的SIZE是5, 所以一次最多只能读取SIZE-1个字节
+
+			第1次:abcd'\0'
+			第2次:'\n''\0'
+			
+
+
 fputs();
 fread();
 fwrite();
