@@ -84,7 +84,7 @@ fgets();
 			请问fgets函数需要读取多少次才能读完文件test的全部内容.
 			答案:是2次.
 			根据上面的常识我们知道文件的内容其实是abcd\n	
-			宏定义buf的SIZE是5, 所以一次最多只能读取SIZE-1个字节
+			宏定义buf的SIZE是5, 所以一次最多只能读取SIZE-1(4)个字节
 
 			第1次:abcd'\0'
 			第2次:'\n''\0'
@@ -92,9 +92,35 @@ fgets();
 
 
 fputs();
-fread();
-fwrite();
 
+fread();
+	size_t fread(void *ptr,size_t size, size_t nmemb,FILE *stream);
+
+fwrite();
+	size_t fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream);
+
+fread()和fwrite()会从文件中读取或写入item,单个item的大小是size, nmemb表示要读/写多少个item.
+On  success,  fread() and fwrite() return the number of items read or written.  This number equals the number of bytes transferred only
+       when size is 1.  If an error occurs, or the end of the file is reached, the return value is a short item count (or zero).
+
+fread()和fwrite()在使用上有限制,它们只能在item的大小是固定长度的情况下才能正常调用,如果单个item的大小不固定,那么就会出错.
+fread和fwrite在他们不能读取或写入一个完整的item的时候,他们的返回值为0.
+考虑下面的情况:
+fread(buf, size, nmemb, fp)
+我们从文件中读取数据, 同样是读数据我们可以fread(buf, 1, 10, fp)也可以fread(buf, 10, 1, fp);
+同样是调用fread,有什么区别. 
+分为有两种情况
+1-->数据量充足
+2-->只有5个字节
+
+
+fread(buf, 1, 10, fp);
+1-->读取10个item,每个item的大小是1个字节, 返回值是10-->10字节
+2-->读取5个item,每个item的大小是1个字节, 返回值是5-->5字节
+
+fread(buf, 10, 1, fp);
+1-->读取1个item, item大小为10字节, 返回值是10 --> 10字节
+2-->读取不了1个10字节的item,文件中只有5字节不够,一个item,返回值是0 -->  ??? 不确定读了几个字节
 printf();
 scanf();
 
