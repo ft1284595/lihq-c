@@ -132,3 +132,23 @@ ftell();
 rewind();
 
 fflush();
+缓冲区的作用: 大多数情况下是好事, 合并系统调用
+
+行缓冲: 
+	换行时候刷新,
+	满了的时候刷新,
+	强制刷新(标准输出就是这样的,因为标准输出是终端设备)
+
+全缓冲:
+	满了的时候刷新,
+	强制刷新(默认,只要不是终端设备的其他设备)
+
+无缓冲:
+	如stderr, 需要立即输出的内容
+
+	setvbuf函数可以设置缓冲区的模式, 具体查看man手册
+		_IONBF: unbuffered
+		_IOLBF: line buffered
+		_IOFBF: fully buffered
+
+	通常情况下我们不会使用到setvbuf函数
