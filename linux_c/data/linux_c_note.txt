@@ -127,8 +127,59 @@ fread(buf, 10, 1, fp);//读取1个item, item大小为10字节
 printf();
 scanf();
 
-fseek();
-ftell();
+fseek(); //设置文件位置指针到指定的位置
+	int fseek(FILE *stream, long offset, int whence);
+ftell();//The ftell() function obtains the current value of the file position indicator for the stream pointed to by stream.
+    long ftell(FILE *stream);
 rewind();
+    void rewind(FILE *stream);
+
+	rewind函数相当于 fseek(stream, 0L, SEEK_SET)
+
+fseek函数和ftell函数由于历史原因,在使用起来有缺陷. fseek函数中的参数offset是long类型,ftell的返回值是long类型.
+以ftell函数来说,这个函数返回的是当前文件指针所在的位置.这个返回值一般都是一个正整数,除非ftell函数运行出错,才返回-1.
+而通常状况下(32位)long类型就是带符号的长整型,它的取值范围: -2^31 ~ 2^31-1 也就是 -2G ~ 2G-1. 
+	(但是我用centos8的64位虚拟机,查看limits.h文件中long的取值范围是-2^63 ~ 2^63-1)
+也就是说如果一个文件的大小超过2G,ftell函数就不能正常返回文件指针的位置了, 而且负数的范围基本都浪费了,ftell最多返回-1.
+同理, fseek函数中的offset的最大值也就是2G-1 ,这个数值在以前硬件还没有蓬勃发展起来的时候,还是足够用的,但是现在就不一定了.
+	(我装了个centos7.9的32位版本,复制了一个3.9G的manjaro系统的ISO文件,准备测试一下ftell的出错情况,
+	发现还没到调用ftell函数. fopen函数就已经报错了, fopen(): File too large)
+为了解决这个问题所以后来就有了fseeko和ftello函数
+
+int fseeko(FILE *stream, off_t offset, int whence);
+off_t ftello(FILE *stream);
+
+使用off_t来代替long类型, off_t具体占几个字节可以使用宏定义来指定(man page里面有写怎么指定).
+
+但是通过查看man page知道这两个函数遵循的标准是
+CONFORMING TO
+       POSIX.1-2001, POSIX.1-2008, SUSv2.
+	   
+也就是说fseeko, ftello不是C标准的函数,它们两个是方言.所以使用起来有限制.不能完全使用fseeko替代fseek
+那么如果文件大小超过2G,就得用其他方法来定位文件位置指针
+
+
+
+
 
 fflush();
+缓冲区的作用: 大多数情况下是好事, 合并系统调用
+
+行缓冲: 
+	换行时候刷新,
+	满了的时候刷新,
+	强制刷新(标准输出就是这样的,因为标准输出是终端设备)
+
+全缓冲:
+	满了的时候刷新,
+	强制刷新(默认,只要不是终端设备的其他设备)
+
+无缓冲:
+	如stderr, 需要立即输出的内容
+
+	setvbuf函数可以设置缓冲区的模式, 具体查看man手册
+		_IONBF: unbuffered
+		_IOLBF: line buffered
+		_IOFBF: fully buffered
+
+	通常情况下我们不会使用到setvbuf函数
