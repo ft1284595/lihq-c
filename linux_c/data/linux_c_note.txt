@@ -155,7 +155,7 @@ off_t ftello(FILE *stream);
 CONFORMING TO
        POSIX.1-2001, POSIX.1-2008, SUSv2.
 	   
-也就是说fseeko, ftello不是C标准的函数.所以使用起来有限制.不能完全使用fseeko替代fseek
+也就是说fseeko, ftello不是C标准的函数,它们两个是方言.所以使用起来有限制.不能完全使用fseeko替代fseek
 那么如果文件大小超过2G,就得用其他方法来定位文件位置指针
 
 
