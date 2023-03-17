@@ -222,7 +222,7 @@ CONFORMING TO
 	mtime:最后一次写的时间
 	ctime:最后一次亚数据的修改时间
 
-	open();
+	open(); 返回一个文件描述符(非负整数,因为它是数组的下标), 如果返回-1,表示出错.
 	int open(const char *pathname, int flags);
     int open(const char *pathname, int flags, mode_t mode);
 	open函数有两种形式,一种是两个参数,另外一种是3个参数.
@@ -239,7 +239,13 @@ CONFORMING TO
 		可以给open函数传递多个参数(超过3个参数), 如果编译产生错误,那就说明参数的个数是固定的,也就是重载实现,
 		反之,如果编译没有语法错误,那就是可变参数实现的.
 
+	ssize_t read(int fd, void *buf, size_t count);
+	read函数的返回值是读到的字节数,如果返回0,表示读到了文件末尾. -1表示出错.
+	size_t:无符号整型
+	ssize_t:有符号整型
+	The types size_t and ssize_t are, respectively, unsigned and signed integer data types specified by POSIX.1.
 
+	ssize_t write(int fd, const void *buf, size_t count);
 
 将文件IO与标准IO的区别
 IO的效率问题
