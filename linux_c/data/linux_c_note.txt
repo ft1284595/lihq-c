@@ -158,10 +158,6 @@ CONFORMING TO
 也就是说fseeko, ftello不是C标准的函数,它们两个是方言.所以使用起来有限制.不能完全使用fseeko替代fseek
 那么如果文件大小超过2G,就得用其他方法来定位文件位置指针
 
-
-
-
-
 fflush();
 缓冲区的作用: 大多数情况下是好事, 合并系统调用
 
@@ -183,3 +179,74 @@ fflush();
 		_IOFBF: fully buffered
 
 	通常情况下我们不会使用到setvbuf函数
+
+getline(); 它可以完整的获取文件中的一行内容,无论你这一行有多长,它都能吃下,但是getline函数也不是标准库中的函数
+ssize_t getline(char **lineptr, size_t *n, FILE *stream);
+getline中的二级指针lineptr, 它的创建时在getline中malloc出来的,但是并没有对应的接口来free这块内存.需要你自己去free创建出来的lineptr
+
+CONFORMING TO
+       Both getline() and getdelim() were originally GNU extensions.  They were standardized in POSIX.1-2008.
+
+
+临时文件: 1.如何不冲突的创建临时文件 2.及时销毁
+	tmpnam函数可以返回一个可用的临时文件名称,它的问题是,只返回一个文件名称,但是文件的创建还需要你自己fopen.
+	如果有两个进程A,B, A从tmpnam中获得一个文件名,但是还没有创建它, 
+	B进程调用tmpnam恰巧返回了和A进程相同的文件名(因为这时文件还没有创建,所以在tmpnam看来,刚才给A进程的文件名还是可用的)
+	然后A,B进程去创建文件,那么就会出现问题,两个进程使用同一个文件名称创建临时文件,如果fopen的model是w, 
+	那么第一个进程创建的文件会被第二个进程覆盖掉
+	
+	tmpfile函数直接返回给你一个FILE * 所以它要比上面的tmpnam好用一些
+
+
+
+
+
+文件IO/系统调用IO
+
+文件描述符(fd)是在文件IO中贯穿始终的类型
+
+文件描述符的概念(整型数,数组下标,文件描述符优先使用当前可用范围内最小的)
+	回顾标准IO(stdio)操作, 我们都是依赖于fopen函数返回一个FILE *fp. FILE是一个结构体,结构体中包含了文件的相关信息,比如文件的位置指针pos,等等.
+	在系统IO,与FILE *fp 类似,系统IO中也有一个结构体,这个结构体中包含了文件的信息(inode), 文件的位置指针pos等等. 但是系统IO中,linux把这个结构体的
+	具体信息做了隐藏,它没有将这个结构体指针直接返回给调用者.open函数产生的这个结构体指针被保存在一个数组中,取而代之的是返回这个结构体在数组中的位置(下标)
+	这个下标就是文件描述符.调用者通过这个下标来间接的访问open产生的结构体. 标准IO的实现是由系统IO来完成的,所以我们可以推断,FILE*和系统IO中的结构体
+	应该有联系, 在FILE结构体中有一个成员就是文件描述符(fd). 系统的每一个进程都会维护一个这样的数组来存放结构体指针.这个数组的默认大小是1024,
+	是不是很熟悉? 我们在测试fopen能打开多少文件的时候,返回1021, 另外3个是stdin,stdout,stderr. 
+	ulimit命令能够修改打开文件个数的上限,因为它是在修改这个数组的大小.
+
+文件IO操作: open, close, read, write, lseek
+	cache和buffer的区别?
+	粗略的可以认为cache是读的加速机制,buffer是写的加速机制(老师说的). 也有弹幕说buffer是用户态读写数据暂存区,cache是内核态读写加速机制(不知道对不对)
+
+	atime:最后一次读的时间
+	mtime:最后一次写的时间
+	ctime:最后一次亚数据的修改时间
+
+	open();
+	int open(const char *pathname, int flags);
+    int open(const char *pathname, int flags, mode_t mode);
+	open函数有两种形式,一种是两个参数,另外一种是3个参数.
+	参数flag必须包含一种access modes(O_RDONLY, O_WRONLY or O_RDWR)
+	flag还包括file creation flag和file status flag
+	file creation flag 和 file status flag 并不是必须的.
+	file creation flag: O_CLOEXEC, O_CREAT, O_DIRECTORY, O_EXCL, O_NOCTTY, O_NOFOLLOW, O_TMPFILE, and O_TRUNC.
+	file status flag: 太多了, 可以查看man 2 open
+	当你调用open函数的时候,如果你的flags参数包括file creation flag,那么必须调用3个参数的open函数.
+
+	思考: 2个参数的open函数和3个参数的open函数是重载实现的么?
+		C语言没有重载, C语言是用可变参数来实现这两个open函数的. 
+		如果没有告诉你这是C语言环境,context有可能是C,也可能是C++,怎么继续判断两个函数到底是重载实现的还是可变参数实现的呢?
+		可以给open函数传递多个参数(超过3个参数), 如果编译产生错误,那就说明参数的个数是固定的,也就是重载实现,
+		反之,如果编译没有语法错误,那就是可变参数实现的.
+
+
+
+将文件IO与标准IO的区别
+IO的效率问题
+文件共享
+原子操作
+程序中的重定向: dup, dup2
+同步: sync, fsync, fdatasync
+fcntl();
+ioctl();
+/dev/fd/目录:
