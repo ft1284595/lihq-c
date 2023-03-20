@@ -201,7 +201,7 @@ CONFORMING TO
 
 
 
-文件IO/系统调用IO
+文件IO(即,系统调用IO)
 
 文件描述符(fd)是在文件IO中贯穿始终的类型
 
@@ -247,9 +247,76 @@ CONFORMING TO
 
 	ssize_t write(int fd, const void *buf, size_t count);
 
-将文件IO与标准IO的区别
+文件IO与标准IO的区别
+举例: 传达室老大爷跑邮局  
+	文件IO方式:老大爷每收到一封需要寄出的信件,都立刻跑去邮局寄信
+	标准IO方式:老大爷先等待需要寄出的信件到达一个阈值(比如20封信), 当需要寄出的信件数量达到20封的时候,老大爷跑一趟邮局寄信.
+		如果在寄出信件还没有达到阈值的时候比方说现在只有5封信,然后又来了一封信,这封信件需要立刻寄出,那么老大爷就立刻带着这6封信去邮局寄信.(fflush)
+
+区别: 响应速度 & 吞吐量(缓冲区)
+文件IO的响应速度快,标准IO的吞吐量大
+文件IO是实打实的系统调用,即从user态切换到kernel态,完成任务,然后再从kernel态切换回user态
+标准IO的作用就是依赖这个缓冲区来合并系统调用
+
+问题:如何是一个程序变快?
+从响应速度和吞吐量两个方面着手,如果需要响应速度快,就文件IO. 要吞吐量的话就系统IO
+从用户体验的角度来说的话,提高吞吐量的效果很可能比提高系统调用的响应速度的效果好
+
+tips: 在相同的情况下,如果标准IO和文件IO都可以完成任务的时候,推荐使用标准IO
+
+Note: 标准IO和文件IO不能混用. FILE结构体和文件描述符对应的结构体有关联,但是并不是同一个东西.比如:这两个结构体都有文件当前位置的指针pos,
+但是由于有缓冲区的存在,FILE结构体中的pos指针的值,和fd对应的结构体中的pos指针的值很可能就不一样.
+
+
+转换函数: 
+	int fileno(FILE *stream);
+	fileno函数可以将FILE *指针转换成对应的文件描述符fd. 将标准IO转换成文件IO
+
+	FILE *fdopen(int fd, const char *mode);
+	fdopen函数将文件描述符fd转换成对应的FILE *指针. 将文件IO转换成标准IO
+
+
 IO的效率问题
-文件共享
+习题: 使用time命令去测试我们前面写的mycopy(用它来复制一个大文件,找个5G的文件,最小3G)的执行时间, 不断的更改buffer的size直到这个size达到16M个字节.
+记录每次的执行时间,每次循环了多少次读写操作, 找到buf_size的性能拐点是多大? 老师预计buf_size在16M字节的时候,mycopy程序会段错误,
+如果没出错,继续增加buf_size的值,直到出错为止. 考虑一下buf_size出错时的大小和当前系统资源的配置(弹幕提示是当前栈的大小),有什么联系?
+
+文件共享:多个任务共同操作一个文件或者协同完成任务.
+问题:写一个程序删除一个文件的第10行.
+补充函数: truncate/ftruncate  把一个文件按照指定的大小截断
+	int truncate(const char *path, off_t length);
+    int ftruncate(int fd, off_t length);
+
+思路1:
+	while()
+	{
+		lseek 11 + read + lseek 10 + write
+	}
+
+思路2: 减少系统io的次数
+	首先创建打开文件2次
+	1 --> open r --> fd1 --> lseek 11
+	2 --> open r+ --> fd2 --> lseek 10
+
+	while()
+	{
+		1-->fd1-->read
+		2-->fd2-->write	
+	}
+思路3: 使用多个进程
+	process1 --> open --> r
+	process2 --> open --> r+
+
+	通过进程间通信
+	p1->read -> p2->write
+
+思路4: 使用线程
+	thread1 --> open --> r
+	thread2 --> open --> r+
+
+	通过进程间通信
+	t1->read -> t2->write
+
 原子操作
 程序中的重定向: dup, dup2
 同步: sync, fsync, fdatasync
