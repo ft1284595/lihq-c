@@ -6,7 +6,7 @@
 #include <unistd.h>
 
 //#define BUFSIZE	1024
-#define BUFSIZE	1024
+#define BUFSIZE	1024*2*2*2*2*2*2*2*2*2*2*2*2*2
 
 int main(int argc, char* argv[])
 {
