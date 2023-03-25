@@ -467,6 +467,7 @@ dup2函数其实就是将close和dup操作封装成了一个原子操作,它会�
 使用dup2函数的时候需要注意:
 	1.如果oldfd不是一个可用的文件描述符,那么dup2函数不会去close(newfd)
 	2.如果oldfd是一个可用的文件描述符,并且newfd和oldfd的值是一样的,那么dup2函数不会做任何事情,直接返回newfd
+其实还有dup3函数,不过这个函数是linux的方言
 
 同步: sync, fsync, fdatasync
 
