@@ -22,204 +22,7 @@ IPC:进程间通信
 1. 弃用root用户
 2. 重构
 3. 课堂重点: 项目, 课堂代码, 实验, 推荐书籍(Unix环境高级编程, Unix网络编程, TCP/IP详解(卷一), 深入理解计算机系统)的课后题目	
-								Linux_c系统开发学习笔记
 
-I/O: input & output是一切实现的基础
-	stdio标准IO
-	sysio系统调用IO(文件IO)
-
-stdio: FILE类型贯穿始终
-
-首先补充两个错误处理的函数:
-	perror();
-	strerror();
-
-	C语言提供了perror()和strerror()函数来显示与errno相关的文本消息.
-	perror()函数显示您传给它的字符串,后跟一个冒号,一个空格和当前errno值的文本表示形式.
-	strerror()函数,返回一个指针,指针指向当前errno值的文本表示形式.
-	两者的区别在于perror()向stderr输出结果，若你的程序将标准错误输出重定向到/dev/null,那就看不到了,就不能用perror了
-	而strerror的作用只是将errno对应的错误消息字符串返回.你可以自己决定咋样处理字符串,比如可以存到日志,也可以直接printf出来.
-
-fopen(); 
-fopen函数会返回一个FILE类型的指针,那么这个指针指向的结构体FILE是保存在内存中的什么位置(栈,静态区,还是堆)?
-
-栈(✗)				静态区(✗)				堆(✓)
-FILE *fopen(const char *restrict pathname, const char *restrict mode)
-{
-	/*	
-	//如果返回的是在栈上,那么代码类似下面的写法
-	FILE tmp;
-	....
-
-	return tmp;		//这样的实现,在fopen函数结束的时候,tmp也相应的消失了
-	*/
-
-	/*
-	//静态区的实现
-	static FILE tmp;
-	...
-	...
-	
-	return tmp;	//这样的实现的确可延长tmp的生命周期至fopen函数结束以后,
-	但是有缺点,因为static变量使用的是同一块内存, 如果你调用fopen()两次,那么后面调用的返回值会覆盖第一次的返回值
-	*/
-
-	/*
-	返回值在堆上的实现
-	*/
-	FILE *tmp = NULL;
-
-	tmp = malloc(sizeof(FILE));	//有malloc操作就必定会有对应的free来释放内存,free操作在fclose()中
-	tmp->xx = xxx;
-	....
-
-	return tmp;
-}
-
-fopen() 有两个参数,第一个参数是文件名称,第二个参数是打开的模式mode
-mode主要有r,r+,		w,w+,	a,a+
-这其中只有r和r+要求文件必须存在,如果文件不存在就会返回NULL,
-w和a模式,如果文件不存在就创建文件
-
-还有一种模式b,这种模式在linux环境下没有意义,它是在windows下,表示以2进制的方式
-
-
-fclose();
-
-小技巧: 如果一个函数返回一个指针,并且关于这个指针还有相关的互逆操作(比如:fopen, fclose),那么这个指针指向的内容是在堆上.
-如果没有互逆操作的函数(由于种种原因造成的),那么这个指针指向的内容是在堆上还是在静态区是不能确定的,需要你自己写测试代码来判断.
-
-fgetc();
-fputc();
-
-fgets();
-	char *fgets(char *buf, size, FILE *stream);
-	知识点:对于任何一个非空的文件,文件中的最后都一定会有一个字符'\n'(可以使用cat -A filename 查看文件中的所有字符)
-	fgets函数的正常结束有两种情况:
-		(1)函数读到了size-1个字节, 第size个字节是专门预留给'\0'的
-		(2)函数遇到了'\n'
-		但是还有一种边界情况, 考虑下面的情况
-			#define SIZE 	5	
-			char buf[SIZE]
-			char *fgets(buf, SIZE, FILE *stream);
-
-			现在有一个文件test的内容是:
-			abcd
-			请问fgets函数需要读取多少次才能读完文件test的全部内容.
-			答案:是2次.
-			根据上面的常识我们知道文件的内容其实是abcd\n	
-			宏定义buf的SIZE是5, 所以一次最多只能读取SIZE-1(4)个字节
-
-			第1次:abcd'\0'
-			第2次:'\n''\0'
-			
-
-
-fputs();
-
-fread();
-	size_t fread(void *ptr,size_t size, size_t nmemb,FILE *stream);
-
-fwrite();
-	size_t fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream);
-
-fread()和fwrite()会从文件中读取或写入item,单个item的大小是size, nmemb表示要读/写多少个item.
-On  success,  fread() and fwrite() return the number of items read or written.  This number equals the number of bytes transferred only
-       when size is 1.  If an error occurs, or the end of the file is reached, the return value is a short item count (or zero).
-
-fread()和fwrite()在使用上有限制,它们只能在item的大小是固定长度的情况下才能正常调用,如果单个item的大小不固定,那么就会出错.
-fread和fwrite在他们不能读取或写入一个完整的item的时候,他们的返回值为0.
-考虑下面的情况:
-fread(buf, size, nmemb, fp)
-我们从文件中读取数据, 同样是读数据我们可以fread(buf, 1, 10, fp)也可以fread(buf, 10, 1, fp);
-同样是调用fread,有什么区别. 
-分为有两种情况
-1-->数据量充足
-2-->只有5个字节
-
-
-fread(buf, 1, 10, fp);	//读取10个item,每个item的大小是1个字节
-1--> 返回值是10-->10字节
-2-->读取5个item,每个item的大小是1个字节, 返回值是5-->5字节
-
-fread(buf, 10, 1, fp);//读取1个item, item大小为10字节
-1--> 返回值是10 --> 10字节
-2-->读取不了1个10字节的item,文件中只有5字节不够,一个item,返回值是0 -->  ??? 你就不能根据返回值来判断文件中还剩多少字节
-
-所以推荐使用单字节读取的方式,fread(buf, 1, 10, fp);
-
-printf();
-scanf();
-
-fseek(); //设置文件位置指针到指定的位置
-	int fseek(FILE *stream, long offset, int whence);
-ftell();//The ftell() function obtains the current value of the file position indicator for the stream pointed to by stream.
-    long ftell(FILE *stream);
-rewind();
-    void rewind(FILE *stream);
-
-	rewind函数相当于 fseek(stream, 0L, SEEK_SET)
-
-fseek函数和ftell函数由于历史原因,在使用起来有缺陷. fseek函数中的参数offset是long类型,ftell的返回值是long类型.
-以ftell函数来说,这个函数返回的是当前文件指针所在的位置.这个返回值一般都是一个正整数,除非ftell函数运行出错,才返回-1.
-而通常状况下(32位)long类型就是带符号的长整型,它的取值范围: -2^31 ~ 2^31-1 也就是 -2G ~ 2G-1. 
-	(但是我用centos8的64位虚拟机,查看limits.h文件中long的取值范围是-2^63 ~ 2^63-1)
-也就是说如果一个文件的大小超过2G,ftell函数就不能正常返回文件指针的位置了, 而且负数的范围基本都浪费了,ftell最多返回-1.
-同理, fseek函数中的offset的最大值也就是2G-1 ,这个数值在以前硬件还没有蓬勃发展起来的时候,还是足够用的,但是现在就不一定了.
-	(我装了个centos7.9的32位版本,复制了一个3.9G的manjaro系统的ISO文件,准备测试一下ftell的出错情况,
-	发现还没到调用ftell函数. fopen函数就已经报错了, fopen(): File too large)
-为了解决这个问题所以后来就有了fseeko和ftello函数
-
-int fseeko(FILE *stream, off_t offset, int whence);
-off_t ftello(FILE *stream);
-
-使用off_t来代替long类型, off_t具体占几个字节可以使用宏定义来指定(man page里面有写怎么指定).
-
-但是通过查看man page知道这两个函数遵循的标准是
-CONFORMING TO
-       POSIX.1-2001, POSIX.1-2008, SUSv2.
-	   
-也就是说fseeko, ftello不是C标准的函数,它们两个是方言.所以使用起来有限制.不能完全使用fseeko替代fseek
-那么如果文件大小超过2G,就得用其他方法来定位文件位置指针
-
-fflush();
-缓冲区的作用: 大多数情况下是好事, 合并系统调用
-
-行缓冲: 
-	换行时候刷新,
-	满了的时候刷新,
-	强制刷新(标准输出就是这样的,因为标准输出是终端设备)
-
-全缓冲:
-	满了的时候刷新,
-	强制刷新(默认,只要不是终端设备的其他设备)
-
-无缓冲:
-	如stderr, 需要立即输出的内容
-
-	setvbuf函数可以设置缓冲区的模式, 具体查看man手册
-		_IONBF: unbuffered
-		_IOLBF: line buffered
-		_IOFBF: fully buffered
-
-	通常情况下我们不会使用到setvbuf函数
-
-getline(); 它可以完整的获取文件中的一行内容,无论你这一行有多长,它都能吃下,但是getline函数也不是标准库中的函数
-ssize_t getline(char **lineptr, size_t *n, FILE *stream);
-getline中的二级指针lineptr, 它的创建时在getline中malloc出来的,但是并没有对应的接口来free这块内存.需要你自己去free创建出来的lineptr
-
-CONFORMING TO
-       Both getline() and getdelim() were originally GNU extensions.  They were standardized in POSIX.1-2008.
-
-
-临时文件: 1.如何不冲突的创建临时文件 2.及时销毁
-	tmpnam函数可以返回一个可用的临时文件名称,它的问题是,只返回一个文件名称,但是文件的创建还需要你自己fopen.
-	如果有两个进程A,B, A从tmpnam中获得一个文件名,但是还没有创建它, 
-	B进程调用tmpnam恰巧返回了和A进程相同的文件名(因为这时文件还没有创建,所以在tmpnam看来,刚才给A进程的文件名还是可用的)
-	然后A,B进程去创建文件,那么就会出现问题,两个进程使用同一个文件名称创建临时文件,如果fopen的model是w, 
-	那么第一个进程创建的文件会被第二个进程覆盖掉
-	
-	tmpfile函数直接返回给你一个FILE * 所以它要比上面的tmpnam好用一些
 								Linux_c系统开发学习笔记
 
 I/O: input & output是一切实现的基础
@@ -513,6 +316,24 @@ stack size              (kbytes, -s) 8192
 ...
 
 Manjaro配置: 真实物理机, AMD1700x 8核16线程, 32GB memory
+ ulimit -a   
+-t: cpu time (seconds)              unlimited
+-f: file size (blocks)              unlimited
+-d: data seg size (kbytes)          unlimited
+-s: stack size (kbytes)             8192
+-c: core file size (blocks)         unlimited
+-m: resident set size (kbytes)      unlimited
+-u: processes                       128051
+-n: file descriptors                1024
+-l: locked-in-memory size (kbytes)  8192
+-v: address space (kbytes)          unlimited
+-x: file locks                      unlimited
+-i: pending signals                 128051
+-q: bytes in POSIX msg queues       819200
+-e: max nice                        0
+-r: max rt priority                 0
+-N 15: rt cpu time (microseconds)   unlimited
+
 
 readCount:读操作循环的次数
 writeCount:写操作循环的次数
@@ -549,219 +370,74 @@ writeCount:写操作循环的次数
 	+------------------------------------------------------------------------------------------------------------+
 	
 
-文件共享:多个任务共同操作一个文件或者协同完成任务.
-问题:写一个程序删除一个文件的第10行(这里没有说明文件中每行文本的长度是否是固定的).
-
-补充函数: truncate/ftruncate  把一个文件按照指定的大小截断
-	int truncate(const char *path, off_t length);
-    int ftruncate(int fd, off_t length);
-
-思路1:
-	while()
-	{
-		lseek 11 + read + lseek 10 + write
-	}
-
-思路2: 减少系统io的次数
-	首先创建打开文件2次
-	1 --> open r --> fd1 --> lseek 11
-	2 --> open r+ --> fd2 --> lseek 10
-
-	while()
-	{
-		1-->fd1-->read
-		2-->fd2-->write	
-	}
-思路3: 使用多个进程
-	process1 --> open --> r
-	process2 --> open --> r+
-
-	通过进程间通信
-	p1->read -> p2->write
-
-思路4: 使用线程
-	thread1 --> open --> r
-	thread2 --> open --> r+
-
-	通过进程间通信
-	t1->read -> t2->write
-
-原子操作:不可分割的操作
-原子: 不可分割的最小单位
-原子操作的作用: 解决竞争和冲突
-
-
-程序中的重定向: dup, dup2
-同步: sync, fsync, fdatasync
-fcntl();
-ioctl();
-/dev/fd/目录:
-
-
-
-
-
-文件IO(即,系统调用IO)
-
-文件描述符(fd)是在文件IO中贯穿始终的类型
-
-文件描述符的概念(整型数,数组下标,文件描述符优先使用当前可用范围内最小的)
-	回顾标准IO(stdio)操作, 我们都是依赖于fopen函数返回一个FILE *fp. FILE是一个结构体,结构体中包含了文件的相关信息,比如文件的位置指针pos,等等.
-	在系统IO,与FILE *fp 类似,系统IO中也有一个结构体,这个结构体中包含了文件的信息(inode), 文件的位置指针pos等等. 但是系统IO中,linux把这个结构体的
-	具体信息做了隐藏,它没有将这个结构体指针直接返回给调用者.open函数产生的这个结构体指针被保存在一个数组中,取而代之的是返回这个结构体在数组中的位置(下标)
-	这个下标就是文件描述符.调用者通过这个下标来间接的访问open产生的结构体. 标准IO的实现是由系统IO来完成的,所以我们可以推断,FILE*和系统IO中的结构体
-	应该有联系, 在FILE结构体中有一个成员就是文件描述符(fd). 系统的每一个进程都会维护一个这样的数组来存放结构体指针.这个数组的默认大小是1024,
-	是不是很熟悉? 我们在测试fopen能打开多少文件的时候,返回1021, 另外3个是stdin,stdout,stderr. 
-	ulimit命令能够修改打开文件个数的上限,因为它是在修改这个数组的大小.
-
-文件IO操作: open, close, read, write, lseek
-	cache和buffer的区别?
-	粗略的可以认为cache是读的加速机制,buffer是写的加速机制(老师说的). 也有弹幕说buffer是用户态读写数据暂存区,cache是内核态读写加速机制(不知道对不对)
-
-	atime:最后一次读的时间
-	mtime:最后一次写的时间
-	ctime:最后一次亚数据的修改时间
-
-	open(); 返回一个文件描述符(非负整数,因为它是数组的下标), 如果返回-1,表示出错.
-	int open(const char *pathname, int flags);
-    int open(const char *pathname, int flags, mode_t mode);
-	open函数有两种形式,一种是两个参数,另外一种是3个参数.
-	参数flag必须包含一种access modes(O_RDONLY, O_WRONLY or O_RDWR)
-	flag还包括file creation flag和file status flag
-	file creation flag 和 file status flag 并不是必须的.
-	file creation flag: O_CLOEXEC, O_CREAT, O_DIRECTORY, O_EXCL, O_NOCTTY, O_NOFOLLOW, O_TMPFILE, and O_TRUNC.
-	file status flag: 太多了, 可以查看man 2 open
-	当你调用open函数的时候,如果你的flags参数包括file creation flag,那么必须调用3个参数的open函数.
-
-	思考: 2个参数的open函数和3个参数的open函数是重载实现的么?
-		C语言没有重载, C语言是用可变参数来实现这两个open函数的. 
-		如果没有告诉你这是C语言环境,context有可能是C,也可能是C++,怎么继续判断两个函数到底是重载实现的还是可变参数实现的呢?
-		可以给open函数传递多个参数(超过3个参数), 如果编译产生错误,那就说明参数的个数是固定的,也就是重载实现,
-		反之,如果编译没有语法错误,那就是可变参数实现的.
-
-	ssize_t read(int fd, void *buf, size_t count);
-	read函数的返回值是读到的字节数,如果返回0,表示读到了文件末尾. -1表示出错.
-	size_t:无符号整型
-	ssize_t:有符号整型
-	The types size_t and ssize_t are, respectively, unsigned and signed integer data types specified by POSIX.1.
-
-	ssize_t write(int fd, const void *buf, size_t count);
-
-文件IO与标准IO的区别
-举例: 传达室老大爷跑邮局  
-	文件IO方式:老大爷每收到一封需要寄出的信件,都立刻跑去邮局寄信
-	标准IO方式:老大爷先等待需要寄出的信件到达一个阈值(比如20封信), 当需要寄出的信件数量达到20封的时候,老大爷跑一趟邮局寄信.
-		如果在寄出信件还没有达到阈值的时候比方说现在只有5封信,然后又来了一封信,这封信件需要立刻寄出,那么老大爷就立刻带着这6封信去邮局寄信.(fflush)
-
-区别: 响应速度 & 吞吐量(缓冲区)
-文件IO的响应速度快,标准IO的吞吐量大
-文件IO是实打实的系统调用,即从user态切换到kernel态,完成任务,然后再从kernel态切换回user态
-标准IO的作用就是依赖这个缓冲区来合并系统调用
-
-问题:如何是一个程序变快?
-从响应速度和吞吐量两个方面着手,如果需要响应速度快,就文件IO. 要吞吐量的话就系统IO
-从用户体验的角度来说的话,提高吞吐量的效果很可能比提高系统调用的响应速度的效果好
-
-tips: 在相同的情况下,如果标准IO和文件IO都可以完成任务的时候,推荐使用标准IO
-
-Note: 标准IO和文件IO不能混用. FILE结构体和文件描述符对应的结构体有关联,但是并不是同一个东西.比如:这两个结构体都有文件当前位置的指针pos,
-但是由于有缓冲区的存在,FILE结构体中的pos指针的值,和fd对应的结构体中的pos指针的值很可能就不一样.
-
-
-转换函数: 
-	int fileno(FILE *stream);
-	fileno函数可以将FILE *指针转换成对应的文件描述符fd. 将标准IO转换成文件IO
-
-	FILE *fdopen(int fd, const char *mode);
-	fdopen函数将文件描述符fd转换成对应的FILE *指针. 将文件IO转换成标准IO
-
-
-IO的效率问题
-
-问题: 使用time命令去测试我们前面写的mycopy(用它来复制一个大文件,找个5G的文件,最小3G)的执行时间, 不断的更改buffer的size直到这个size达到16M个字节.
-记录每次的执行时间,每次循环了多少次读写操作, 找到buf_size的性能拐点是多大? 老师预计buf_size在16M字节的时候,mycopy程序会段错误,
-如果没出错,继续增加buf_size的值,直到出错为止. 考虑一下buf_size出错时的大小和当前系统资源的配置(弹幕提示是当前栈的大小),有什么联系?
-
-这里我使用了manjaro-gnome-22.0.4-230222-linux61.iso,文件大小3.9G(4081616896字节)
-CentOS 8 VmWare配置: 1 processors, 4 cores per processor, 2GB memory, 
-[xin@localhost ~]$ ulimit -a
-...
-stack size              (kbytes, -s) 8192
-...
-
-Manjaro配置: 真实物理机, AMD1700x 8核16线程, 32GB memory
-
-readCount:读操作循环的次数
-writeCount:写操作循环的次数
 	+------------------------------------------------------------------------------------------------------------+    
-	| BUF_SIZE |    real    |    user    |    system    |    readCount    |    writeCount    |    environment    |
+	| BUF_SIZE |   total    |    user    |    system    |    readCount    |    writeCount    |    environment    |
 	+------------------------------------------------------------------------------------------------------------+
-	|   1K     | 0m12.247s  | 0m0.286s   | 0m9.111s     |    3985954      | 	3985954 	 |  CentOS 8 VmWare  |
+	|   1K     | 6.673s     | 0.32s      | 6.35s        |    3985954      | 	3985954 	 |    Manjaro        |
 	+------------------------------------------------------------------------------------------------------------+
-	|   2K     | 0m11.161s  | 0m0.146s   | 0m7.829s     |    1992977      |     1992977      |  CentOS 8 VmWare  |
+	|   2K     | 4.025s     | 0.14s      | 3.88s        |    1992977      |     1992977      |    Manjaro        |
 	+------------------------------------------------------------------------------------------------------------+
-	|   4K     | 0m10.875s  | 0m0.076s   | 0m6.639s     |    996489       |     996489       |  CentOS 8 VmWare  |
+	|   4K     | 2.468s     | 0.08s      | 2.38s        |    996489       |     996489       |    Manjaro        |
 	+------------------------------------------------------------------------------------------------------------+
-	|   8K     | 0m10.635s  | 0m0.046s   | 0m6.249s     |    498245       |     498245       |  CentOS 8 VmWare  |
+	|   8K     | 1.947s     | 0.07s      | 1.88s        |    498245       |     498245       |    Manjaro        |
 	+------------------------------------------------------------------------------------------------------------+
-	|   16K    | 0m10.543s  | 0m0.021s   | 0m6.167s     |    249123       |     249123       |  CentOS 8 VmWare  |
+	|   16K    | 1.656s     | 0.02s      | 1.63s        |    249123       |     249123       |    Manjaro        |
 	+------------------------------------------------------------------------------------------------------------+
-	|   32K    | 0m10.768s  | 0m0.016s   | 0m5.999s     |    124562       |     124562       |  CentOS 8 VmWare  |
+	|   32K    | 1.493s     | 0.01s      | 1.48s        |    124562       |     124562       |    Manjaro        |
 	+------------------------------------------------------------------------------------------------------------+
-	|   64K    | 0m10.565s  | 0m0.010s   | 0m5.959s     |    62281        |     62281        |  CentOS 8 VmWare  |
+	|   64K    | 1.404s     | 0.01s      | 1.39s        |    62281        |     62281        |    Manjaro        |
 	+------------------------------------------------------------------------------------------------------------+
-	|   128K   | 0m10.574s  | 0m0.010s   | 0m6.108s     |    31141        |     31141        |  CentOS 8 VmWare  |
+	|   128K   | 1.479s     | 0.00s      | 1.47s        |    31141        |     31141        |    Manjaro        |
 	+------------------------------------------------------------------------------------------------------------+
-	|   256K   | 0m10.335s  | 0m0.005s   | 0m6.096s     |    15571        |     15571        |  CentOS 8 VmWare  |
+	|   256K   | 1.604s     | 0.00s      | 1.60s        |    15571        |     15571        |    Manjaro        |
 	+------------------------------------------------------------------------------------------------------------+
-	|   512K   | 0m10.395s  | 0m0.002s   | 0m6.172s     |    7786         |     7786         |  CentOS 8 VmWare  |
+	|   512K   | 1.514s     | 0.00s      | 1.51s        |    7786         |     7786         |    Manjaro        |
 	+------------------------------------------------------------------------------------------------------------+
-	|   1M     | 0m10.490s  | 0m0.003s   | 0m6.280s     |    3893         |     3893         |  CentOS 8 VmWare  |
+	|   1M     | 1.590s     | 0.00s      | 1.50s        |    3893         |     3893         |    Manjaro        |
 	+------------------------------------------------------------------------------------------------------------+
-	|   2M     | 0m10.480s  | 0m0.008s   | 0m6.277s     |    1947         |     1947         |  CentOS 8 VmWare  |
+	|   2M     | 1.748s     | 0.00s      | 1.74s        |    1947         |     1947         |    Manjaro        |
 	+------------------------------------------------------------------------------------------------------------+
-	|   4M     | 0m10.735s  | 0m0.007s   | 0m6.133s     |    974          |     974          |  CentOS 8 VmWare  |
+	|   4M     | 1.536s     | 0.00s      | 1.53s        |    974          |     974          |    Manjaro        |
 	+------------------------------------------------------------------------------------------------------------+
-	|   8M     |    Segmentation fault (core dumped)                                            CentOS 8 VmWare  |  
+	|   8M     |    Segmentation fault (core dumped)                                              Manjaro        |  
 	+------------------------------------------------------------------------------------------------------------+
-	
 
 文件共享:多个任务共同操作一个文件或者协同完成任务.
-问题:写一个程序删除一个文件的第10行(这里没有说明文件中每行文本的长度是否是固定的).
+	问题:写一个程序删除一个文件的第10行(这里没有说明文件中每行文本的长度是否是固定的).
 
-补充函数: truncate/ftruncate  把一个文件按照指定的大小截断
-	int truncate(const char *path, off_t length);
-    int ftruncate(int fd, off_t length);
+		补充函数: truncate/ftruncate  把一个文件按照指定的大小截断
+			int truncate(const char *path, off_t length);
+			int ftruncate(int fd, off_t length);
 
-思路1:
-	while()
-	{
-		lseek 11 + read + lseek 10 + write
-	}
+		思路1:
+			while()
+			{
+				lseek 11 + read + lseek 10 + write
+			}
 
-思路2: 减少系统io的次数
-	首先创建打开文件2次
-	1 --> open r --> fd1 --> lseek 11
-	2 --> open r+ --> fd2 --> lseek 10
+		思路2: 减少系统io的次数
+			首先创建打开文件2次
+			1 --> open r --> fd1 --> lseek 11
+			2 --> open r+ --> fd2 --> lseek 10
 
-	while()
-	{
-		1-->fd1-->read
-		2-->fd2-->write	
-	}
-思路3: 使用多个进程
-	process1 --> open --> r
-	process2 --> open --> r+
+			while()
+			{
+				1-->fd1-->read
+				2-->fd2-->write	
+			}
+		思路3: 使用多个进程
+			process1 --> open --> r
+			process2 --> open --> r+
 
-	通过进程间通信
-	p1->read -> p2->write
+			通过进程间通信
+			p1->read -> p2->write
 
-思路4: 使用线程
-	thread1 --> open --> r
-	thread2 --> open --> r+
+		思路4: 使用线程
+			thread1 --> open --> r
+			thread2 --> open --> r+
 
-	通过进程间通信
-	t1->read -> t2->write
+			通过进程间通信
+			t1->read -> t2->write
 
 原子操作:不可分割的操作
 原子: 不可分割的最小单位
