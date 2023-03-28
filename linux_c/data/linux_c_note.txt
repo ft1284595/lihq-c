@@ -502,6 +502,54 @@ int ioctl(int fd, unsigned long request, ...);
 一. 目录和文件
 
 1. 获取文件属性
+	stat,fstat,lstat
+	int stat(const char *pathname, struct stat *statbuf);
+	int fstat(int fd, struct stat *statbuf);
+	int lstat(const char *pathname, struct stat *statbuf);
+	这3个函数做的是同一件事情,获取文件属性,只不过stat根据文件名称pathname, fstat是用文件描述符fd, lstat的参数pathname是一个符号链接(symbolic link)
+
+	struct stat {
+		dev_t     st_dev;         /* ID of device containing file */
+		ino_t     st_ino;         /* Inode number */
+		mode_t    st_mode;        /* File type and mode */
+		nlink_t   st_nlink;       /* Number of hard links */
+		uid_t     st_uid;         /* User ID of owner */
+		gid_t     st_gid;         /* Group ID of owner */
+		dev_t     st_rdev;        /* Device ID (if special file) */
+		off_t     st_size;        /* Total size, in bytes */
+		blksize_t st_blksize;     /* Block size for filesystem I/O */
+		blkcnt_t  st_blocks;      /* Number of 512B blocks allocated */
+
+		/* Since Linux 2.6, the kernel supports nanosecond
+			precision for the following timestamp fields.
+			For the details before Linux 2.6, see NOTES. */
+
+		struct timespec st_atim;  /* Time of last access */
+		struct timespec st_mtim;  /* Time of last modification */
+		struct timespec st_ctim;  /* Time of last status change */
+
+	#define st_atime st_atim.tv_sec      /* Backward compatibility */
+	#define st_mtime st_mtim.tv_sec
+	#define st_ctime st_ctim.tv_sec
+	};
+	请注意, st_size != st_blksize * st_blocks不用奇怪,这是因为linux的文件系统本身决定的.
+	请区别 st_dev和st_rdev, st_dev是文件本身所在的设备id, st_rdev是特殊文件(插入的U盘...)的device id
+
+tips: 使用ctags在/usr/include目录下执行ctags -R, 然后cd到/usr/include目录下,就可以结合vim来查看一些定义.
+	例如:vim -t FILE就可以查看FILE相关的定义是_IO_FILE, 然后继续vim -t _IO_FILE就可以查看到结构体的具体定义
+
+	结合Practical Vim这本书,可以使用ctrl-r,ctrl-w组合键来快速将光标所在的字符显示在命令模式下
+	vim -t FILE 的显示如下
+	xxxx
+	xxxx
+	/* The opaque type of streams.  This is the definition used elsewhere.  */
+	typedef struct _IO_FILE FILE;
+	xxxx
+	然后我们可以把光标定位在_IO_FILE上面,然后再命令模式下继续查找_IO_FILE的定义
+	:!vim -t ctrl-r,ctrl-w   等价于你自己手写 :!vim -t _IO_FILE
+
+
+
 2. 文件访问权限
 3. umask
 4. 文件权限的更改/管理
