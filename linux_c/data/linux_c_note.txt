@@ -532,8 +532,10 @@ int ioctl(int fd, unsigned long request, ...);
 	#define st_mtime st_mtim.tv_sec
 	#define st_ctime st_ctim.tv_sec
 	};
-	请注意, st_size != st_blksize * st_blocks不用奇怪,这是因为linux的文件系统本身决定的.
+	请注意, st_size != st_blksize * st_blocks 不用奇怪,这是因为linux的文件系统本身决定的.
 	请区别 st_dev和st_rdev, st_dev是文件本身所在的设备id, st_rdev是特殊文件(插入的U盘...)的device id
+
+tips: 自己写的函数的返回值和参数类型都不建议使用char,用int来代替char, 因为char类型所表示的数字是有符号的还是无符号的C标准里面没有明确说明.
 
 tips: 使用ctags在/usr/include目录下执行ctags -R, 然后cd到/usr/include目录下,就可以结合vim来查看一些定义.
 	例如:vim -t FILE就可以查看FILE相关的定义是_IO_FILE, 然后继续vim -t _IO_FILE就可以查看到结构体的具体定义
@@ -551,10 +553,26 @@ tips: 使用ctags在/usr/include目录下执行ctags -R, 然后cd到/usr/include
 
 
 2. 文件访问权限
+	stat结构体中的成员st_mode是一个16位的位图,用于表示文件类型,文件访问权限,及特殊权限为
 3. umask
+	作用:防止产生权限过松的文件
+
 4. 文件权限的更改/管理
-5. 粘住位
+	chmod函数和fchmod函数
+
+5. 粘滞位
+	t位,设置t位的作用是把某一个命令的使用痕迹进行保留,保留之后下次再装载这个模块的时候就会比较快.
+	通俗的说就是在内存中保存某条命令的使用痕迹,下次装载这条命令会比较快.这个t为最早的设计用途是用来给一个可执行的二进制文件来使用的,
+	现在由于有了page cache(常用的数据留存在内存中),t位就不是那么常用了. 
+	现在t位主要是用于对目录来设置的.例如/tmp目录就是一个设置t位的目录,这个目录设置t为之后,各个用户对于/tmp目录甚至对其中的文件的操作就比较特殊化了.
+	对于一个多人可写的目录/tmp,如果设置的stick,则每个用户只能删除自己的文件,其目的就是为了防止普通用户删除其他用户在这个目录下创建的文件
+
 6. 文件系统: FAT, UFS
+	文件系统:文件或数据的存储和管理
+	FAT: 静态单向链表, 他是用数组实现的,
+		缺点主要有:
+			1. 数组的大小是写死的,所以FAT文件系统能处理的文件大小是有限制的(不过以前的U盘,硬盘也没有现在那么大)
+			2.单向链表本身只能从头开始顺序查询,
 7. 硬链接,符号链接
 8. utime
 9. 目录的创建和销毁
