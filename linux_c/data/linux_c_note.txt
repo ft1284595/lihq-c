@@ -509,7 +509,7 @@ int ioctl(int fd, unsigned long request, ...);
 	这3个函数做的是同一件事情,获取文件属性,只不过stat根据文件名称pathname, fstat是用文件描述符fd, lstat的参数pathname是一个符号链接(symbolic link)
 	stat:通过文件路径获取属性,面对符号链接文件时,获取的是所指向的源文件的属性
 	fstat:通过文件描述符获取属性
-	lstat: 面对符号链接文件时,获取的是符号链接文件的属性(stat获取的是源文件的属性)
+	lstat: 面对符号链接文件时,获取的是符号链接文件的属性(stat获取的是源文件的属性,这就是lstat和stat的重要区别)
 
 	struct stat {
 		dev_t     st_dev;         /* ID of device containing file */
@@ -643,15 +643,24 @@ tips: 使用ctags在/usr/include目录下执行ctags -R, 然后cd到/usr/include
 10. 更改当前工作路径
 	chdir()
 	fchdir()
-	这两个函数可以突破chroot假根技术
+	这两个函数可以突破chroot,假根技术
 	getcwd()
 
 11. 分析目录/读取目录内容
 glob():解析模式/通配符
+globfree(): 释放glob函数解析的结果所占用的内存
+
+
+使用glob函数解析一个路径,查看该路径下符合要求的文件有哪些?
+
+ 例如:
+ ./myglob /etc/l*.conf 		显示/etc下所有l开头的conf文件
+ ./myglob "/home/xin/*"    	显示/home/xin下的所有文件(不包含隐藏文件)
+ ./myglob "/home/xin/.*" 	显示/home/xin下的所有隐藏文件,双引号"是为了防止shell扩展通配符
 
 opendir()
 closedir()
-readdir()
+readdir()			readdir可以读取目录下的所有文件(包括隐藏文件)
 rewinddir()
 seekdir()
 telldir()
