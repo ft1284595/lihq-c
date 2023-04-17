@@ -1,1 +1,2 @@
 CFLAGS+=-D_FILE_OFF_SET_BITS=64 -Wall
+LDFLAGS+=-lcrypt
