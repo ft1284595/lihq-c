@@ -671,8 +671,29 @@ telldir()
 	并不是所有系统都有这个/etc/passwd文件, 
 		FreeBSD早期的版本使用的是BDB(伯克利DB),不过我试了一下FreeBSD 13.0-RELEASE这个版本是有passwd文件的.
 		HP UNIX --> fs(文件系统), HP小型机使用文件系统来完成类似的工作
+	getpwuid();
+	getpwnam();
 2. /etc/group
+	getgrgid();
+	getgrnam();
+
+	hash 	混淆	不可逆	如果原串相同,所得的结果也相同, 防备管理员监守自盗
+	加密	-- 		解密
+	x % 5 = 2
+	7 % 5 = 2
+	2 % 5 = 2
+	12 % 5 = 2
+
+	加密: 安全(攻击成本大于收益)
+
+	安全? 穷举: 口令随机校验
+
 3. /etc/shadow
+	getspnam()
+	getspent();
+	crypt(const char *phrase, const char *setting); 
+	//crypt函数的第2个参数settings,要求一个字符串的形如$id$salt$,其中id是选用的加密算法,salt是加密用来和原始串混杂在一起来确保加密的可靠性
+	getpass();
 4. 时间戳
 
 三. 进程环境
