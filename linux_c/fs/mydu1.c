@@ -26,8 +26,8 @@ int check_path(const char *path)
 	//printf("path=%s\n", path);
 	if(strcmp(".", path) == 0 || strcmp("..", path) == 0)
 	{
-		printf("cmp . = %d\n", strcmp(".", path));
-		printf("cmp .. = %d\n", strcmp("..", path));
+		//printf("cmp . = %d\n", strcmp(".", path));
+		//printf("cmp .. = %d\n", strcmp("..", path));
 		return 0;
 	}
 	else
@@ -45,7 +45,7 @@ int64_t mydu(const char* path)
 	struct dirent *dir = NULL;
 	char full_path[PATH_SIZE] = {'0'};
 
-	printf("path1=%s\n", path);
+	//printf("path1=%s\n", path);
 	ret = lstat(path, &statres);	
 	if(ret == -1)
 	{
@@ -60,11 +60,16 @@ int64_t mydu(const char* path)
 	}
 
 	sum += statres.st_blocks;
-	printf("direcotry.\n");
+	//printf("direcotry.\n");
 	dp = opendir(path);	
+	if(dp == NULL)
+	{
+		perror("opendir()");
+		exit(-3);
+	}
 	while((dir = readdir(dp)) && dir != NULL)
 	{
-		printf("%s\n", dir->d_name);
+		//printf("%s\n", dir->d_name);
 		//sleep(1);
 		if(check_path(dir->d_name))
 		{
