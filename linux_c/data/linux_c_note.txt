@@ -694,7 +694,44 @@ telldir()
 	crypt(const char *phrase, const char *setting); 
 	//crypt函数的第2个参数settings,要求一个字符串的形如$id$salt$,其中id是选用的加密算法,salt是加密用来和原始串混杂在一起来确保加密的可靠性
 	getpass();
-4. 时间戳
+
+
+4. 时间戳: time_t(计算机喜欢的类型), char *(普通用户喜欢的类型), struct(程序员喜欢的类型), 下面的这些函数就是在这3中类型中进行转换的,
+具体参见:images/time.png
+	struct tm {
+		int tm_sec;    /* Seconds (0-60) */
+		int tm_min;    /* Minutes (0-59) */
+		int tm_hour;   /* Hours (0-23) */
+		int tm_mday;   /* Day of the month (1-31) */
+		int tm_mon;    /* Month (0-11) */
+		int tm_year;   /* Year - 1900 */
+		int tm_wday;   /* Day of the week (0-6, Sunday = 0) */
+		int tm_yday;   /* Day in the year (0-365, 1 Jan = 0) */
+		int tm_isdst;  /* Daylight saving time */ 		//夏令时,冬令时
+    };
+
+	time_t time(time_t *tloc);
+		time函数的返回值和参数time_t的指针,都是从EPOC(1970年1月1日)到现在的秒数,既然这个参数和返回值是同一个东西,
+		所以这个函数的主要用法有两种: 
+			(1) time_t stamp;	  
+				time(&stamp);		//通过参数获取结果
+			(2) time_t stamp;
+				stamp = time(NULL);	//通过返回值获取结果
+			我还想试一下 
+				time_t stamp1, stamp2;
+				stamp2 = time(&stamp1);
+			看看stamp1,stamp2是不是同一个结构体
+
+	struct tm *gmtime(const time_t *timep); 		//格林尼治时间
+	struct tm *localtime(const time_t *timep);
+	time_t mktime(struct tm *tmp);
+	gmtime,localtime函数都是将time_t类型转换成struct tm,只不过一个是格林尼治时间另一个是本地时间.
+	mktime函数是把struct tm转换成time_t类型的秒数, 请注意: mktime的参数struct tm *tm并没有被const修饰, 所以传入的结构体有可能被修改
+
+	size_t strftime(char *s, size_t max, const char *format, const struct tm *tm);
+	strftime函数可以格式化日期字符串, 参数char *s和size_t max定义了一块内存空间, 
+	strftime函数就是在struct tm结构体中提取需要的字段(需要哪些字段是在参数format中指定的),然后存放到char *s和size_t定义的内存中去,
+	char *s就是格式化好的字符串
 
 三. 进程环境
 /****************************************************************************************************/
