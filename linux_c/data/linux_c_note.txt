@@ -717,16 +717,19 @@ telldir()
 				time(&stamp);		//通过参数获取结果
 			(2) time_t stamp;
 				stamp = time(NULL);	//通过返回值获取结果
-			我还想试一下 
+			我还想试一下,同时使用指针和返回值 
 				time_t stamp1, stamp2;
 				stamp2 = time(&stamp1);
-			看看stamp1,stamp2是不是同一个结构体
+			看看stamp1,stamp2是不是同一个值? 做了实验,是相等的值
+			
 
 	struct tm *gmtime(const time_t *timep); 		//格林尼治时间
 	struct tm *localtime(const time_t *timep);
 	time_t mktime(struct tm *tmp);
 	gmtime,localtime函数都是将time_t类型转换成struct tm,只不过一个是格林尼治时间另一个是本地时间.
-	mktime函数是把struct tm转换成time_t类型的秒数, 请注意: mktime的参数struct tm *tm并没有被const修饰, 所以传入的结构体有可能被修改
+	mktime函数是把struct tm转换成time_t类型的秒数, 请注意: mktime的参数struct tm *tm并没有被const修饰, 所以传入的结构体有可能被修改,
+	这个参数可能被修改的"副作用",有时候对我们来说是可以利用的. 比如:我们将当前时间的struct tm做一些修改(将天数增加100天,等等),mktime会自动将
+	修改后的结构体对应的time_t返回.这样就是一个简单的日期计算器了.
 
 	size_t strftime(char *s, size_t max, const char *format, const struct tm *tm);
 	strftime函数可以格式化日期字符串, 参数char *s和size_t max定义了一块内存空间, 
