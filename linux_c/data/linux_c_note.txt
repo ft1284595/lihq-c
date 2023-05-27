@@ -257,7 +257,7 @@ tmpname和tmpfile
 	file creation flag 和 file status flag 并不是必须的.
 	file creation flag: O_CLOEXEC, O_CREAT, O_DIRECTORY, O_EXCL, O_NOCTTY, O_NOFOLLOW, O_TMPFILE, and O_TRUNC.
 	file status flag: 太多了, 可以查看man 2 open
-	当你调用open函数的时候,如果你的flags参数包括file creation flag,那么必须调用3个参数的open函数.
+	当你调用open函数的时候,如果你的flags参数包括file creation flag,那么必须调用3个参数的open函数,第3个参数mode_t mode是文件的权限(比如0644,0755).
 
 	思考: 2个参数的open函数和3个参数的open函数是重载实现的么?
 		C语言没有重载, C语言是用可变参数来实现这两个open函数的. 
@@ -493,7 +493,6 @@ int ioctl(int fd, unsigned long request, ...);
 例如: ls /dev/fd 就显示的是ls这个进程中的文件描述符信息. 如果你想知道你的程序所在的进程有哪些文件描述符信息,那么就在你的程序中
 去open这个目录
 
-/****************************************************************************************************/
 
 文件系统
 
@@ -728,8 +727,9 @@ telldir()
 	time_t mktime(struct tm *tmp);
 	gmtime,localtime函数都是将time_t类型转换成struct tm,只不过一个是格林尼治时间另一个是本地时间.
 	mktime函数是把struct tm转换成time_t类型的秒数, 请注意: mktime的参数struct tm *tm并没有被const修饰, 所以传入的结构体有可能被修改,
-	这个参数可能被修改的"副作用",有时候对我们来说是可以利用的. 比如:我们将当前时间的struct tm做一些修改(将天数增加100天,等等),mktime会自动将
-	修改后的结构体对应的time_t返回.这样就是一个简单的日期计算器了.
+	这个参数可能被修改的"副作用",有时候对我们来说是可以利用的. 比如:我们将当前时间的struct tm做一些修改(将天数增加100天,即tm_mday +=100,等等),
+	mktime会自动将修改后的结构体对应的time_t返回.这样就是一个简单的日期计算器了.
+		Note:修改天数的变量是struct tm结构体的tm_mday而不是tm_yday.
 
 	size_t strftime(char *s, size_t max, const char *format, const struct tm *tm);
 	strftime函数可以格式化日期字符串, 参数char *s和size_t max定义了一块内存空间, 
@@ -737,4 +737,35 @@ telldir()
 	char *s就是格式化好的字符串
 
 三. 进程环境
-/****************************************************************************************************/
+
+1. main函数
+	int main(int argc, char *argv[])
+	main函数在早期的时候是3个参数,除了上面的两个参数外,第3个参数是环境变量的相关参数,后来环境变量单独做成一个模块,这个参数才从main函数中移除了
+
+2. 进程的终止(非常重要,请一字不差的背下来)
+	正常终止(5种):
+		A. 从main函数返回
+		B. 调用exit函数
+			void exit(int status); //理论上32位环境int的返回值-2g ~ 2g-1
+			exit函数可以结束进程,并且会将所有用atexit函数和on_exit函数注册过的函数,按照它们注册顺序的逆序,依次调用.
+			查看man手册,exit将返回值 status & 0377 返回给parent, 0377表示8进制的377也就是2进制的11111111,
+			所以status & 0377表示只取status的低8位,也就是说exit函数的返回值范围是带符号的8位2进制数的表示范围(-128~127,和char的类型一样大)
+		C. 调用_exit函数或_Exit函数
+			exit函数是库函数, _exit和_Exit函数是系统调用, 库函数是依赖于系统调用的,除此以外,_exit直接结束进程,不会去调用atexit注册过的钩子函数.
+		D. 最后一个线程其启动例程(线程本身)返回
+		E. 最后一个线程调用pthread_exit
+
+	异常终止(3种):
+		A. 调用abort, abort函数会发送一个signal_abort信号给当前进程,杀掉当前进程并且得到一个coredump文件
+		B. 接到一个信号并终止
+		C. 最后一个线程对其取消请求作出响应
+
+
+	atexit():钩子函数, register a function to be called at normal process termination
+	on_exit():钩子函数,和atexit大同小异,两者的区别是atexit是标准函数,on_exit只在某些平台下才有
+3. 命令行参数的分析
+4. 环境变量
+5. C程序的存储空间布局
+6. 库
+7. 函数跳转 
+8. 资源的获取及控制
