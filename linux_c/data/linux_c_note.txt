@@ -800,7 +800,13 @@ telldir()
 			}
 		}
 3. 命令行参数的分析
-	getopt()
+	getopt(int argc, char * const argv[],const char *optstring);
+		argc和argv就是main函数的中的argc,argv
+		optstring就是你所有的选项字符的集合, 例如ls命令的选项optstring可以是"ali", 表示可以使用ls -l, ls -a, ls -i, ls -al等等
+		如果你的选项是一个带参数的选项,需要在命令行参数后面加冒号(:), 然后你就可以使用全局变量extern char *optarg来获得选项后面的参数
+		例如 optstring = "H:MSy:", 这当中的我们假设H是小时的选项,H选项是可以带参数的, y表示年份,分为2位的年份和4位的年份	 
+		 比如 ./mydate -H 12 -y 4 表示12小时制和4位年份, ./mydate -H 24 -y 2 表示24小时制和2位年份
+	getopt_long()
 	
 4. 环境变量
 5. C程序的存储空间布局
