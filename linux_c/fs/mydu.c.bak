@@ -1,0 +1,161 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <string.h>
+#include <glob.h>
+
+#define BUF_SIZE 1024
+#define STR_SIZE 1024
+
+static int64_t sum = 0;
+
+int check_path(char *path)
+{
+	char *filename;
+	filename = strrchr(path, '/');
+	if(strcmp(filename+1, ".") == 0 || strcmp(filename+1, "..") == 0)
+	{
+		return 1;
+	}
+	return 0;
+}
+
+void handle_directory(char *path)
+{
+	int ret = 0;
+	char *pos;
+	glob_t globres;
+	int i = 0;
+	struct stat statres;
+
+	//使用glob函数解析这个目录下有多少文件
+	//假设目录是/home/xin
+	strncat(path, "/*", STR_SIZE);
+	ret = glob(path, 0, NULL, &globres);
+	if(ret != 0)
+	{
+		if(ret == GLOB_NOMATCH)
+		{
+			printf("nomatch for regular file in %s\n", path);
+			//break;
+		}
+		fprintf(stderr, "glob flag=0 path=%s, ret=%d, error=%s\n", path, ret, strerror(ret));
+		exit(-3);
+	}
+
+	pos = strrchr(path, '/');
+	if(pos == NULL)
+	{
+		fprintf(stderr, "can not find / in path(%s)\n", path);
+		globfree(&globres);
+		exit(-4);
+	}
+	*(pos+1) = '\0';
+	//使用glob函数解析这个目录下有多少隐藏文件
+	strncat(path, ".*", STR_SIZE);
+	sleep(1);
+	ret = glob(path, GLOB_APPEND, NULL, &globres);
+	if(ret != 0)
+	{
+		if(ret == GLOB_NOMATCH)
+		{
+			printf("nomatch hidden file for %s\n", path);
+			//break;
+		}
+		fprintf(stderr, "glob flag=GLOB_APPEND path=%s, ret=%d, error=%s\n", path, ret, strerror(ret));
+		exit(-3);
+	}
+
+	for(i = 0; i < globres.gl_pathc; i++)
+	{
+		if(check_path(globres.gl_pathv[i]) == 0)
+		{
+			ret = lstat(globres.gl_pathv[i], &statres);
+			if(ret != 0)
+			{
+				perror("lstat()");
+				exit(-2);
+			}
+			if((statres.st_mode & S_IFMT) == S_IFDIR)
+			{
+				//printf("gl_pathv[%d]=%s\n", i, globres.gl_pathv[i]);
+				handle_directory(globres.gl_pathv[i]);
+			}
+
+			printf("a file\n");
+			sum += statres.st_blocks;
+			printf("sum=%ld\n", sum);
+		}
+	}
+	globfree(&globres);
+}
+
+int64_t disk_usage(char *path)
+{
+	int ret;
+	struct stat statres;
+
+	//先判断传入的path是目录还是文件
+	//这里使用的lstat函数,注意它和stat的区别,如果传入的参数是一个符号链接,
+	//我们这里需要的是符号链接文件的属性而不是符号链接指向的源文件的属性
+	ret = lstat(path, &statres);	
+	if(ret != 0)
+	{
+		perror("lstat()");
+		exit(-2);
+	}
+	switch (statres.st_mode & S_IFMT)
+	{
+		case S_IFDIR:
+			handle_directory(path);
+			break;
+		default:
+			printf("a file\n");
+			sum += statres.st_blocks;
+			printf("sum=%ld\n", sum);
+			break;
+
+	}
+
+	return sum;
+
+}
+
+/**
+ *
+ * 使用glob函数解析路径,结合stat函数来实现du命令,查看一个目录的大小
+ *
+ */
+
+int main(int argc, char *argv[])
+{
+	char *path = NULL;
+	//char buf[BUF_SIZE] = {0};
+	int64_t du_size = 0;
+
+	if(argc < 2)	
+	{
+		//path = getcwd(buf, BUF_SIZE);
+		//printf("buf=%s\n", buf);
+		path = getcwd(NULL, 0);
+		if(path == NULL)
+		{
+			perror("getcwd()");
+			exit(-1);
+		}
+	}
+	else{
+		path = argv[1];
+	}
+
+
+	du_size = disk_usage(path);
+
+	printf("%ld\n", du_size/2);
+
+	//printf("path=%s\n", path);
+
+	exit(0);
+}
