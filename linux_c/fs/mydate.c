@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <unistd.h>
+#include <string.h>
 
 #define BUF_SIZE	512
 #define FORMAT_SIZE 256
@@ -50,14 +51,31 @@ int main(int argc, char *argv[])
 	{
 		switch(opt)
 		{
+            case 'y':
+                break;
 			case 'm':
+				strncat(timeFormat, " %m", 4);
+				break;
+            case 'd':
+				strncat(timeFormat, " %d", 4);
+                break;
+			case 'H':
+                break;
+			case 'M':
+				strncat(timeFormat, " %M", 4);
+				break;
+			case 'S':
+				strncat(timeFormat, " %S", 4);
 				break;
 			default:
+				fprintf(stderr, "you input wront option, please check the options.\n");
+				exit(-2);
 
 		}
 	}
 
-	strftime(buf, BUF_SIZE, "%Y %m %d", time_s);
+	printf("timeFormat=%s\n", timeFormat);
+	strftime(buf, BUF_SIZE, timeFormat, time_s);
 
 	printf("%s\n", buf);
 
